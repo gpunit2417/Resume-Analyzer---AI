@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATS Resume Analyzer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ATS Resume Analyzer</h1>
+            <p>Optimize your resume for Applicant Tracking Systems</p>
+        </div>
+
+        <div class="main-content">
+            <div class="card">
+                <h2>Upload Resume</h2>
+                
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">Drop your PDF resume here</div>
+                    <div class="upload-subtext">or click to browse files</div>
+                </div>
+                
+                <input type="file" id="fileInput" class="hidden-input" accept=".pdf">
+                
+                <div class="form-group">
+                    <label for="jobProfile">Job Profile</label>
+                    <select id="jobProfile" class="form-control">
+                        <option value="">Select Job Profile</option>
+                        <option value="Software Engineer">Software Engineer</option>
+                        <option value="Data Scientist">Data Scientist</option>
+                        <option value="Product Manager">Product Manager</option>
+                        <option value="UI/UX Designer">UI/UX Designer</option>
+                        <option value="Marketing Manager">Marketing Manager</option>
+                        <option value="Sales Representative">Sales Representative</option>
+                        <option value="Business Analyst">Business Analyst</option>
+                        <option value="DevOps Engineer">DevOps Engineer</option>
+                        <option value="Full Stack Developer">Full Stack Developer</option>
+                        <option value="Frontend Developer">Frontend Developer</option>
+                        <option value="Backend Developer">Backend Developer</option>
+                        <option value="Mobile Developer">Mobile Developer</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="experience">Experience Level</label>
+                    <select id="experience" class="form-control">
+                        <option value="">Select Experience Level</option>
+                        <option value="Entry Level (0-2 years)">Entry Level (0-2 years)</option>
+                        <option value="Mid Level (2-5 years)">Mid Level (2-5 years)</option>
+                        <option value="Senior Level (5-8 years)">Senior Level (5-8 years)</option>
+                        <option value="Lead Level (8-12 years)">Lead Level (8-12 years)</option>
+                        <option value="Executive Level (12+ years)">Executive Level (12+ years)</option>
+                    </select>
+                </div>
+
+                <button class="btn" id="analyzeBtn">Analyze Resume</button>
+            </div>
+
+            <div class="card">
+                <h2>📊 Analysis Preview</h2>
+                <div style="text-align: center; padding: 40px; color: #a0aec0;">
+                    <div style="font-size: 3rem; margin-bottom: 15px;">🎯</div>
+                    <p>Upload your resume and select job profile to get started</p>
+                    <p style="font-size: 0.9rem; margin-top: 10px;">Your ATS score and recommendations will appear here</p>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing your resume...</p>
+                <p style="font-size: 0.9rem; color: #718096; margin-top: 10px;">This may take a few moments</p>
+            </div>
+
+            <div class="results" id="results">
+                <h2>📈 Analysis Results</h2>
+                
+                <div class="score-container">
+                    <div class="score-circle" id="scoreCircle">
+                        <span id="scoreValue">0</span>%
+                    </div>
+                    <h3 id="scoreLabel">ATS Compatibility Score</h3>
+                </div>
+
+                <div class="improvements">
+                    <div class="improvement-section">
+                        <h3>🎯 Strengths</h3>
+                        <ul class="improvement-list" id="strengthsList">
+                        </ul>
+                    </div>
+                    
+                    <div class="improvement-section">
+                        <h3>⚠️ Areas for Improvement</h3>
+                        <ul class="improvement-list" id="improvementsList">
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="improvement-section" style="margin-top: 20px;">
+                    <h3>💡 Recommended Changes</h3>
+                    <ul class="improvement-list" id="recommendationsList">
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const jobProfile = document.getElementById('jobProfile');
+        const experience = document.getElementById('experience');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        
+        let selectedFile = null;
+
+        // File upload handling
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            if (file.type !== 'application/pdf') {
+                alert('Please upload only PDF files');
+                return;
+            }
+            
+            selectedFile = file;
+            uploadArea.classList.add('file-selected');
+            uploadArea.innerHTML = `
+                <div class="upload-icon">✅</div>
+                <div class="upload-text">${file.name}</div>
+                <div class="upload-subtext">PDF uploaded successfully</div>
+            `;
+        }
+
+        // Analyze button handler
+        analyzeBtn.addEventListener('click', async () => {
+            if (!selectedFile || !jobProfile.value || !experience.value) {
+                alert('Please fill all fields and upload a resume');
+                return;
+            }
+
+            // Show loading
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            analyzeBtn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('resume', selectedFile);
+                formData.append('jobProfile', jobProfile.value);
+                formData.append('experience', experience.value);
+
+                const response = await fetch('http://localhost:5000/analyze-resume', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error('Analysis failed');
+                }
+
+                const result = await response.json();
+                displayResults(result);
+                
+            } catch (error) {
+                console.error('Analysis failed:', error);
+                alert('Analysis failed. Please make sure the backend server is running.');
+            } finally {
+                loading.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        function displayResults(data) {
+            const scoreValue = document.getElementById('scoreValue');
+            const scoreCircle = document.getElementById('scoreCircle');
+            const strengthsList = document.getElementById('strengthsList');
+            const improvementsList = document.getElementById('improvementsList');
+            const recommendationsList = document.getElementById('recommendationsList');
+
+            // Update score
+            scoreValue.textContent = data.ats_score;
+            
+            // Update score circle color
+            scoreCircle.className = 'score-circle';
+            if (data.ats_score >= 80) {
+                scoreCircle.classList.add('score-excellent');
+            } else if (data.ats_score >= 60) {
+                scoreCircle.classList.add('score-good');
+            } else {
+                scoreCircle.classList.add('score-poor');
+            }
+
+            // Update strengths
+            strengthsList.innerHTML = '';
+            data.strengths.forEach(strength => {
+                const li = document.createElement('li');
+                li.textContent = strength;
+                strengthsList.appendChild(li);
+            });
+
+            // Update improvements
+            improvementsList.innerHTML = '';
+            data.improvements.forEach(improvement => {
+                const li = document.createElement('li');
+                li.textContent = improvement;
+                improvementsList.appendChild(li);
+            });
+
+            // Update recommendations
+            recommendationsList.innerHTML = '';
+            data.recommendations.forEach(recommendation => {
+                const li = document.createElement('li');
+                li.textContent = recommendation;
+                recommendationsList.appendChild(li);
+            });
+
+            // Show results
+            results.style.display = 'block';
+            results.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
